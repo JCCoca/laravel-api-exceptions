@@ -46,6 +46,18 @@ return [
             'title' => 'Internal Server Error.',
             'message' => 'A database error occurred. Please try again later.',
         ],
+        'too_many_requests' => [
+            'title' => 'Too Many Requests.',
+            'message' => 'You have exceeded your rate limit. Please try again later.',
+        ],
+        'external_api_error' => [
+            'title' => 'Bad Gateway.',
+            'message' => 'An error occurred while communicating with an upstream service.',
+        ],
+        'external_api_timeout' => [
+            'title' => 'Gateway Timeout.',
+            'message' => 'The upstream service took too long to respond.',
+        ],
         'fallback' => [
             'title' => 'Internal Server Error.',
             'message' => 'An unexpected error occurred on our servers. Please try again later.',

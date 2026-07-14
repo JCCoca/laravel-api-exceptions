@@ -8,8 +8,10 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -25,6 +27,8 @@ class ApiExceptionHandler
         $exceptions->render(fn (NotFoundHttpException $e, Request $request) => self::shouldRenderJson($request) ? self::notFound($e) : null);
         $exceptions->render(fn (MethodNotAllowedHttpException $e, Request $request) => self::shouldRenderJson($request) ? self::methodNotAllowed($e) : null);
         $exceptions->render(fn (ValidationException $e, Request $request) => self::shouldRenderJson($request) ? self::validationFailed($e) : null);
+        $exceptions->render(fn (ThrottleRequestsException $e, Request $request) => self::shouldRenderJson($request) ? self::tooManyRequests($e) : null);
+        $exceptions->render(fn (RequestException $e, Request $request) => self::shouldRenderJson($request) ? self::externalHttpClientError($e) : null);
         $exceptions->render(fn (QueryException $e, Request $request) => self::shouldRenderJson($request) ? self::databaseError($e) : null);
         $exceptions->render(fn (Throwable $e, Request $request) => self::shouldRenderJson($request) ? self::fallback($e) : null);
     }
@@ -83,6 +87,43 @@ class ApiExceptionHandler
         ], 422);
     }
 
+    protected static function tooManyRequests(ThrottleRequestsException $e): JsonResponse
+    {
+        $headers = $e->getHeaders();
+
+        return response()->json([
+            'error' => config('api-exceptions.errors.too_many_requests.title', 'Too Many Requests.'),
+            'message' => $e->getMessage() ?: config('api-exceptions.errors.too_many_requests.message', 'You have exceeded your rate limit. Please try again later.'),
+        ], 429, $headers);
+    }
+
+    protected static function externalHttpClientError(RequestException $e): JsonResponse
+    {
+        $statusCode = $e->response->status();
+        
+        if (in_array($statusCode, [408, 504], true)) {
+            return response()->json([
+                'error' => config('api-exceptions.errors.external_api_timeout.title', 'Gateway Timeout.'),
+                'message' => config('api-exceptions.errors.external_api_timeout.message', 'The upstream service took too long to respond.'),
+            ], 504);
+        }
+
+        $responsePayload = [
+            'error' => config('api-exceptions.errors.external_api_error.title', 'Bad Gateway.'),
+            'message' => config('api-exceptions.errors.external_api_error.message', 'An error occurred while communicating with an upstream service.'),
+        ];
+
+        if (config('app.debug')) {
+            $responsePayload['debug'] = [
+                'upstream_status' => $statusCode,
+                'upstream_url' => $e->response->handlerContext()['url'] ?? 'Unknown',
+                'upstream_response' => $e->response->json() ?: $e->response->body(),
+            ];
+        }
+
+        return response()->json($responsePayload, 502);
+    }
+
     protected static function databaseError(QueryException $e): JsonResponse
     {
         return response()->json([
@@ -104,7 +145,7 @@ class ApiExceptionHandler
                 'exception' => get_class($e),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => collect($e->getTrace())->map(fn ($trace) => [
+                'trace' => collect($e->getTrace())->take(10)->map(fn ($trace) => [
                     'file' => $trace['file'] ?? null,
                     'line' => $trace['line'] ?? null,
                     'function' => $trace['function'],
