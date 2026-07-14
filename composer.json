@@ -1,6 +1,6 @@
 {
     "name": "jccoca/laravel-api-exceptions",
-    "description": "A clean and highly customizable REST API exception handler for Laravel.",
+    "description": "A clean and highly customizable REST API Exception Handler for Laravel.",
     "license": "MIT",
     "authors": [
         {
@@ -10,7 +10,7 @@
     ],
     "require": {
         "php": "^8.4",
-        "laravel/framework": "^11.0"
+        "laravel/framework": "^11.0|^12.0|^13.0"
     },
     "autoload": {
         "psr-4": {
