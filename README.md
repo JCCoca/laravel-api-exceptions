@@ -1,3 +1,4 @@
+```markdown
 # Laravel API Exceptions
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/jccoca/laravel-api-exceptions.svg?style=flat-square)](https://packagist.org/packages/jccoca/laravel-api-exceptions)
