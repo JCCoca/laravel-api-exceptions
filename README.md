@@ -1,4 +1,3 @@
-```markdown
 # Laravel API Exceptions
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/jccoca/laravel-api-exceptions.svg?style=flat-square)](https://packagist.org/packages/jccoca/laravel-api-exceptions)
@@ -25,3 +24,4 @@ You can install the package via Composer:
 
 ```bash
 composer require jccoca/laravel-api-exceptions
+```
